@@ -8,7 +8,7 @@ With the growing number of movies being released, users often face challenges in
 
 ## Dataset
 - **File**: `main_data.csv`
-- **Description**: The dataset contains information about various movies, including their features such as title, genre, and user reviews. It serves as the foundation for building the recommendation model.
+- **Description**: The dataset contains information about various movies, including their features such as title, genre, and user reviews. It serves as the foundation for building the recommendation model. Other data is taken from Wikipedia.
 
 ## Working of the Project
 1. **Data Preprocessing**: 
