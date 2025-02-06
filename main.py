@@ -153,25 +153,33 @@ def recommend():
     cast_details = {cast_names[i]:[cast_ids[i], cast_profiles[i], cast_bdays[i], cast_places[i], cast_bios[i]] for i in range(len(cast_places))}
 
     # web scraping to get user reviews from IMDB site
-    req = urllib.request.Request('https://www.imdb.com/title/{}/reviews?ref_=tt_ov_rt'.format(imdb_id), headers={'User-Agent': 'Mozilla/5.0'})
+    try:
+        # Use requests instead of urllib
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        url = f'https://www.imdb.com/title/{imdb_id}/reviews?ref_=tt_ov_rt'
+        
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        
+        soup = bs.BeautifulSoup(response.text, 'lxml')
+        soup_result = soup.find_all("div", {"class": "text show-more__control"}, limit=6)  # Updated class name
 
-    sauce = urllib.request.urlopen(req).read()
-    soup = bs.BeautifulSoup(sauce, 'lxml')
-    soup_result = soup.find_all("div", {"class": "ipc-overflowText"}, limit=6)
-  
+        reviews_list = [] # list of reviews
+        reviews_status = [] # list of comments (good or bad)
+        
+        for review in soup_result:
+            if review.text:  # Check if review text exists
+                reviews_list.append(review.text)
+                # passing the review to our model
+                movie_review_list = np.array([review.text])
+                movie_vector = vectorizer.transform(movie_review_list)
+                pred = clf.predict(movie_vector)
+                reviews_status.append('Good' if pred else 'Bad')
 
-    reviews_list = [] # list of reviews
-    reviews_status = [] # list of comments (good or bad)
-    for review in soup_result:
-        review_title = review.find_previous("h3", {"class": "ipc-title__text"}).get_text(strip=True)
-        review_text = review.find("div", {"class": "ipc-html-content-inner-div"}).get_text(separator="\n", strip=True)
-        if isinstance(review_title, str) and isinstance(review_text, str):  # Check if it's a string
-            reviews_list.append(f"{review_title}\n{review_text}")
-            # passing the review to our model
-            movie_review_list = np.array([review_text])
-            movie_vector = vectorizer.transform(movie_review_list)
-            pred = clf.predict(movie_vector)
-            reviews_status.append('Good' if pred else 'Bad')
+    except Exception as e:
+        print(f"Error fetching reviews: {e}")
+        reviews_list = ["No reviews available"]
+        reviews_status = ["N/A"]
 
     # combining reviews and comments into a dictionary
     movie_reviews = {reviews_list[i]: reviews_status[i] for i in range(len(reviews_list))}     
